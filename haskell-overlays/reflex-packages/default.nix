@@ -30,49 +30,40 @@ in
   ## Reflex family
   ##
 
-  reflex = dontCheck (addFastWeakFlag (addReflexTraceEventsFlag (addReflexOptimizerFlag (self.callPackage self._dep.reflex {}))));
+  # Failing hlint test
+  reflex = doJailbreak (dontCheck (addFastWeakFlag (addReflexTraceEventsFlag (
+    appendPatch (addReflexOptimizerFlag (self.callPackage self._dep.reflex {})) ./reflex-cabal.patch
+  ))));
   reflex-todomvc = self.callPackage self._dep.reflex-todomvc {};
   reflex-aeson-orphans = self.callCabal2nix "reflex-aeson-orphans" self._dep.reflex-aeson-orphans {};
-  reflex-dom = addReflexOptimizerFlag reflexDom.reflex-dom;
-  reflex-dom-core = appendConfigureFlags
-    (addReflexOptimizerFlag reflexDom.reflex-dom-core)
-    (lib.optional enableLibraryProfiling "-fprofile-reflex");
+  reflex-dom = if !(self.ghc.isGhcjs or false)
+    then (nixpkgs.haskell.lib.addBuildDepend (nixpkgs.haskell.lib.enableCabalFlag
+      (doJailbreak (addReflexOptimizerFlag reflexDom.reflex-dom)) "use-warp")
+      self.jsaddle-warp)
+    else doJailbreak (addReflexOptimizerFlag reflexDom.reflex-dom);
+
+  reflex-dom-core = dontCheck (doJailbreak (appendConfigureFlags
+    (addReflexOptimizerFlag (appendPatch reflexDom.reflex-dom-core ./reflex-dom-core-hydration.patch))
+    (lib.optional enableLibraryProfiling "-fprofile-reflex")));
   chrome-test-utils = reflexDom.chrome-test-utils;
 
-  ##
-  ## GHCJS and JSaddle
-  ##
+  haskell-src-exts = self.callHackage "haskell-src-exts" "1.21.0" {};
 
-  jsaddle = self.callCabal2nix "jsaddle" "${jsaddleSrc}/jsaddle" {};
-  jsaddle-clib = self.callCabal2nix "jsaddle-clib" "${jsaddleSrc}/jsaddle-clib" {};
-  jsaddle-webkit2gtk = self.callCabal2nix "jsaddle-webkit2gtk" "${jsaddleSrc}/jsaddle-webkit2gtk" {};
-  jsaddle-webkitgtk = self.callCabal2nix "jsaddle-webkitgtk" "${jsaddleSrc}/jsaddle-webkitgtk" {};
-  jsaddle-wkwebview = overrideCabal (self.callCabal2nix "jsaddle-wkwebview" "${jsaddleSrc}/jsaddle-wkwebview" {}) (drv: {
-    # HACK(matthewbauer): Can’t figure out why cf-private framework is
-    #                     not getting pulled in correctly. Has something
-    #                     to with how headers are looked up in xcode.
-    preBuild = lib.optionalString (!nixpkgs.stdenv.hostPlatform.useiOSPrebuilt) ''
-      mkdir include
-      ln -s ${nixpkgs.buildPackages.darwin.cf-private}/Library/Frameworks/CoreFoundation.framework/Headers include/CoreFoundation
-      export NIX_CFLAGS_COMPILE="-I$PWD/include $NIX_CFLAGS_COMPILE"
-    '';
+  jsaddle-warp = dontCheck super.jsaddle-warp;
+  jsaddle-webkit2gtk = null;
 
-    libraryFrameworkDepends = (drv.libraryFrameworkDepends or []) ++
-      (if nixpkgs.stdenv.hostPlatform.useiOSPrebuilt then [
-         "${nixpkgs.buildPackages.darwin.xcode}/Contents/Developer/Platforms/${nixpkgs.stdenv.hostPlatform.xcodePlatform}.platform/Developer/SDKs/${nixpkgs.stdenv.hostPlatform.xcodePlatform}.sdk/System"
-       ] else with nixpkgs.buildPackages.darwin; with apple_sdk.frameworks; [
-         Cocoa
-         WebKit
-       ]);
-  });
+  haddock-api = dontHaddock (doJailbreak super.haddock-api);
+  multistate = doJailbreak super.multistate;
+  stylish-haskell = doJailbreak super.stylish-haskell;
+  monad-dijkstra = dontCheck super.monad-dijkstra;
 
-  # another broken test
-  # phantomjs has issues with finding the right port
-  # jsaddle-warp = dontCheck (addTestToolDepend (self.callCabal2nix "jsaddle-warp" "${jsaddleSrc}/jsaddle-warp" {}));
-  jsaddle-warp = dontCheck (self.callCabal2nix "jsaddle-warp" "${jsaddleSrc}/jsaddle-warp" {});
-
-  jsaddle-dom = self.callPackage self._dep.jsaddle-dom {};
-  inherit (ghcjsDom) ghcjs-dom-jsffi;
+  inspection-testing = if self.ghc.isGhcjs or false then null else super.inspection-testing;
+  polysemy = (if self.ghc.isGhcjs or false then dontCheck else (x: x)) (super.callCabal2nix "polysemy" (fetchFromGitHub {
+    owner = "isovector";
+    repo = "polysemy";
+    rev = "fbbed8d2c682df201c86132467694b8827022f35";
+    sha256 = "0p66d7r0v2s2wkpc1nsv7pg1arpsdqj0a26y730bmlnas3flyn8b";
+  }) {});
 
   ##
   ## Gargoyle
@@ -88,13 +79,6 @@ in
 
   monoidal-containers = self.callHackage "monoidal-containers" "0.4.0.0" {};
 
-  # Needs additional instances
-  dependent-sum = self.callCabal2nix "dependent-sum" (fetchFromGitHub {
-    owner = "obsidiansystems";
-    repo = "dependent-sum";
-    rev = "9c649ba33fa95601621b4a3fa3808104dd1ababd";
-    sha256 = "1msnzdb79bal1xl2xq2j415n66gi48ynb02pf03wkahymi5dy4yj";
-  }) {};
   # Misc new features since Hackage relasese
   dependent-sum-template = self.callCabal2nix "dependent-sum-template" (fetchFromGitHub {
     owner = "mokus0";

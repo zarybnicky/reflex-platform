@@ -1,0 +1,13 @@
+--- a/test/hydration.hs
++++ b/test/hydration.hs
+@@ -24,2 +24,3 @@
+ import Control.Monad.Catch
++import Control.Monad.Fail (MonadFail)
+ import Control.Monad.Fix
+@@ -85,3 +85,5 @@
+ writeRef r = WD . writeRef r
+
++deriving instance MonadFail WD
++
+ assertEqual :: (MonadIO m, Eq a, Show a) => String -> a -> a -> m ()
+

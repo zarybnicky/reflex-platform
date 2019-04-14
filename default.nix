@@ -12,20 +12,20 @@
 , haskellOverlays ? []
 }:
 let iosSupport = system == "x86_64-darwin";
-    androidSupport = lib.elem system [ "x86_64-linux" ];
+    androidSupport = false; #lib.elem system [ "x86_64-linux" ];
 
     # Overlay for GHC with -load-splices & -save-splices option
     splicesEval = self: super: {
       haskell = super.haskell // {
         compiler = super.haskell.compiler // {
-          ghcSplices-8_4 = super.haskell.compiler.ghc844.overrideAttrs (drv: {
+          ghcSplices-8_4 = super.haskell.compiler.ghc864.overrideAttrs (drv: {
             enableParallelBuilding = false;
             patches = (drv.patches or [])
               ++ [ ./splices-load-save.patch ./haddock.patch ];
           });
         };
         packages = super.haskell.packages // {
-          ghcSplices-8_4 = super.haskell.packages.ghc844.override {
+          ghcSplices-8_4 = super.haskell.packages.ghc864.override {
             buildHaskellPackages = self.buildPackages.haskell.packages.ghcSplices-8_4;
             ghc = self.buildPackages.haskell.compiler.ghcSplices-8_4;
           };
@@ -38,7 +38,7 @@ let iosSupport = system == "x86_64-darwin";
 
     bindHaskellOverlays = self: super: {
       haskell = super.haskell // {
-        overlays = super.overlays or {} // import ./haskell-overlays {
+        overlays = import ./haskell-overlays {
           nixpkgs = self;
           inherit (self) lib;
           haskellLib = self.haskell.lib;
@@ -79,13 +79,11 @@ let iosSupport = system == "x86_64-darwin";
         permittedInsecurePackages = [
           "webkitgtk-2.4.11"
         ];
-        packageOverrides = pkgs: {
-          webkitgtk = pkgs.webkitgtk220x;
-        };
 
         # XCode needed for native macOS app
         # Obelisk needs it to for some reason
         allowUnfree = true;
+        allowBroken = true;
       } // config;
     };
 
@@ -172,16 +170,7 @@ let iosSupport = system == "x86_64-darwin";
     ]);
   };
   ghcjs = ghcjs8_4;
-  ghcjs8_4 = (makeRecursivelyOverridable (nixpkgs.haskell.packages.ghcjs84.override (old: {
-    ghc = old.ghc.override {
-      ghcjsSrc = fetchgit {
-        url = "https://github.com/obsidiansystems/ghcjs.git";
-        rev = "584eaa138c32c5debb3aae571c4153d537ff58f1";
-        sha256 = "1ib0vsv2wrwf5iivnq6jw2l9g5izs0fjpp80jrd71qyywx4xcm66";
-        fetchSubmodules = true;
-      };
-    };
-  }))).override {
+  ghcjs8_4 = (makeRecursivelyOverridable nixpkgs.haskell.packages.ghcjs).override {
     overrides = nixpkgs.haskell.overlays.combined;
   };
 
@@ -189,7 +178,7 @@ let iosSupport = system == "x86_64-darwin";
   ghcHEAD = (makeRecursivelyOverridable nixpkgs.haskell.packages.ghcHEAD).override {
     overrides = nixpkgs.haskell.overlays.combined;
   };
-  ghc8_4 = (makeRecursivelyOverridable nixpkgs.haskell.packages.ghc844).override {
+  ghc8_4 = (makeRecursivelyOverridable nixpkgs.haskell.packages.ghc864).override {
     overrides = nixpkgs.haskell.overlays.combined;
   };
 

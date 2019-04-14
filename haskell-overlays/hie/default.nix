@@ -13,6 +13,12 @@ let
 in self: super: {
   _dep = super._dep or {} // thunkSet ./dep;
 
+  brittany = haskellLib.doJailbreak (haskellLib.dontCheck (self.callCabal2nix "brittany" (fetchFromGitHub {
+    owner = "lspitzner";
+    repo = "brittany";
+    rev = "6c187da8f8166d595f36d6aaf419370283b3d1e9";
+    sha256 = "0nmnxprbwws3w1sh63p80qj09rkrgn9888g7iim5p8611qyhdgky";
+  }) {}));
   haskell-lsp = self.callHackage "haskell-lsp" "0.8.0.1" {};
   haskell-lsp-types = self.callHackage "haskell-lsp-types" "0.8.0.1" {};
   # https://github.com/bubba/lsp-test/commit/a9cff941ac28ce31c8463b6bd84237c0eeee06ea
@@ -24,6 +30,7 @@ in self: super: {
     sha256 = "1607mbw8q10mjy1yy7jzllpa5a4mzj9iy78br5sypnz5lqk780wg";
   }) {});
   hedgehog = haskellLib.doJailbreak super.hedgehog;
+  hsimport = haskellLib.doJailbreak super.hsimport;
   pretty-show = self.callHackage "pretty-show" "1.8.1" {};
   constrained-dynamic = haskellLib.doJailbreak super.constrained-dynamic;
   cabal-helper = haskellLib.doJailbreak (self.callCabal2nix "cabal-helper" (fetchFromGitHub {
@@ -32,17 +39,11 @@ in self: super: {
     rev = "8fecf6a7754424ed1653dce632382707e8f03499";
     sha256 = "1lypls1zkyg7pq2xcg6mm25x7rgndy2553yakdkayg4m8msr7f8f";
   }) {});
-  monad-dijkstra = self.callCabal2nix "monad-dijkstra" (fetchFromGitHub {
-    owner = "ennocramer";
-    repo = "monad-dijkstra";
-    rev = "53a1bf93774171fe722c6470e8a03ac0cb0f22fa"; # 0.1.1.2
-    sha256 = "08fzq8m81m831bg0w86cqwpskmf892np7wjvpk90m9jd5cdg4rd5";
-  }) {};
   floskell = self.callCabal2nix "floskell" (fetchFromGitHub {
     owner = "ennocramer";
     repo = "floskell";
-    rev = "059abe627647d97c23579a14194d143d84e3e2f1";
-    sha256 = "1nzdb1kf6q1kynln4iqcm5mkswh4a0cl1a91inycbaiq82y9r739";
+    rev = "f6421e6972279ee5f6f12c3de49be4922f603f6c";
+    sha256 = "1mvzfaw1p5ix0arm47yfjzv0xixa5sidfjsd78a9iyhqzgamzc8c";
   }) {};
   HaRe = haskellLib.dontHaddock (haskellLib.dontCheck (haskellLib.doJailbreak (self.callCabal2nix "HaRe" (fetchFromGitHub {
     owner = "alanz";

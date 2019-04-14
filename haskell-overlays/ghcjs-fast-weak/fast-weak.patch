@@ -56,10 +56,9 @@ diff --git a/lib/boot/shims/src/weak.js b/lib/boot/shims/src/weak.js
 index 0e68f51..3a9d4ab 100644
 --- a/lib/boot/shims/src/weak.js
 +++ b/lib/boot/shims/src/weak.js
-@@ -81,3 +81,26 @@ function h$finalizeWeak(w) {
+@@ -84,1 +84,25 @@ function h$finalizeWeak(w) {
  }
- 
- 
++
 +function h$FastWeak(ticket) {
 +  this.ticket = ticket;
 +  this.m = 0;
